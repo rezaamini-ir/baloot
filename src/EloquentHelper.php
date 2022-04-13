@@ -9,40 +9,37 @@ trait EloquentHelper
 {
     public function getAttribute($key)
     {
-        if ($key && preg_match('/^([A-Za-z0-9_]+)_fa(|_f|_ft|_ftt)$/', $key, $matches)) {
-            if ($this->isDateAttribute($matches[1])) {
-                $attributeValue = Verta::instance($this->getAttribute($matches[1]));
-                if ($matches[2] == '_f') {
-                    return $attributeValue->formatJalaliDate();
-                } elseif ($matches[2] == '_ft') {
-                    return $attributeValue->format('Y/n/j H:i');
-                } elseif ($matches[2] == '_ftt') {
-                    return $attributeValue->formatJalaliDatetime();
-                }
-
-                return $attributeValue;
-            }
+        if (!($key && preg_match('/^([A-Za-z0-9_]+)_fa(|_f|_ft|_ftt)$/', $key, $matches))) {
+            return parent::getAttribute($key);
         }
-
-        return parent::getAttribute($key);
+        if ($this->isDateAttribute($matches[1])) {
+            $attributeValue = Verta::instance($this->getAttribute($matches[1]));
+            $ability = [ //set array for all ability
+                '_f' => $attributeValue->formatJalaliDate(),
+                '_ft' => $attributeValue->format('Y/n/j H:i'),
+                '_ftt' => $attributeValue->formatJalaliDatetime()
+            ];
+            foreach ($ability as $key => $value) {//loop on ability and return result
+                if ($matches[2] == $key) {
+                    return $value;
+                }
+            }
+            return $attributeValue;
+        }
     }
 
     public function setAttribute($key, $value)
     {
-        if ($key && $value && preg_match('/^([A-Za-z0-9_]+)_fa(|_f|_ft|_ftt)$/', $key, $matches)) {
-            if ($this->isDateAttribute($matches[1])) {
-                if (! ($value instanceof Verta)) {
-                    try {
-                        $value = Verta::parse($value);
-                    } catch (Exception $exception) {
-                    }
-                }
-                if ($value instanceof Verta) {
-                    return $this->setAttribute($matches[1], $value->DateTime());
-                }
-            }
+        if (!($key && $value && preg_match('/^([A-Za-z0-9_]+)_fa(|_f|_ft|_ftt)$/', $key, $matches))) {
+            return parent::setAttribute($key, $value);
         }
-
-        return parent::setAttribute($key, $value);
+        if ($this->isDateAttribute($matches[1])) {
+            if ($value instanceof Verta) {
+                return $this->setAttribute($matches[1], $value->DateTime());
+            }
+            try {
+                $value = Verta::parse($value);
+            } catch (Exception $exception) {}
+        }
     }
 }
